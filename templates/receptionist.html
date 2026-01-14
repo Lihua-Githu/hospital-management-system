@@ -285,6 +285,7 @@
     <div class="container">
         <div class="tabs">
             <button class="tab active" onclick="switchTab('register')">📝 患者登记</button>
+            <button class="tab" onclick="switchTab('patients')">👥 患者查询</button>
             <button class="tab" onclick="switchTab('visits')">📋 就诊管理</button>
             <button class="tab" onclick="switchTab('billing')">💰 费用结算</button>
             <button class="tab" onclick="switchTab('appointments')">📅 预约管理</button>
@@ -326,8 +327,15 @@
                     
                     <div class="form-group">
                         <label for="regDept">就诊科室 *</label>
-                        <select id="regDept" name="dept_id" required onchange="loadRooms(this.value, 'regRoom')">
+                        <select id="regDept" name="dept_id" required onchange="loadDoctorsAndRooms(this.value)">
                             <option value="">请选择科室</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="regDoctor">接诊医生 *</label>
+                        <select id="regDoctor" name="doctor_id" required>
+                            <option value="">请先选择科室</option>
                         </select>
                     </div>
                     
@@ -347,6 +355,20 @@
                 <button type="submit" class="btn">登记就诊</button>
                 <button type="reset" class="btn btn-secondary">重置表单</button>
             </form>
+        </div>
+        
+        <!-- 患者查询 -->
+        <div id="patients" class="tab-content">
+            <h2 style="margin-bottom: 20px;">👥 患者信息查询</h2>
+            <div id="patientsMessage" class="message"></div>
+            
+            <div class="search-box">
+                <input type="text" id="patientSearchKeyword" placeholder="输入姓名、电话或身份证号搜索">
+                <button onclick="searchPatients()" class="btn">🔍 搜索</button>
+                <button onclick="loadAllPatients()" class="btn btn-secondary">📋 查看全部</button>
+            </div>
+            
+            <div id="patientsList"></div>
         </div>
         
         <!-- 就诊管理 -->
@@ -484,6 +506,41 @@
             }
         }
         
+        // 同时加载医生和诊室
+        async function loadDoctorsAndRooms(deptId) {
+            loadDoctors(deptId, 'regDoctor');
+            loadRooms(deptId, 'regRoom');
+        }
+        
+        // 加载医生
+        async function loadDoctors(deptId, targetId) {
+            const select = document.getElementById(targetId);
+            select.innerHTML = '<option value="">加载中...</option>';
+            
+            if (!deptId) {
+                select.innerHTML = '<option value="">请先选择科室</option>';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/doctors?dept_id=${deptId}`);
+                const result = await response.json();
+                
+                select.innerHTML = '<option value="">请选择医生</option>';
+                if (result.success) {
+                    result.data.forEach(doctor => {
+                        const option = document.createElement('option');
+                        option.value = doctor.emp_id;
+                        option.textContent = `${doctor.emp_name} (${doctor.title || '医生'})`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('加载医生失败:', error);
+                select.innerHTML = '<option value="">加载失败</option>';
+            }
+        }
+        
         // 加载诊室
         async function loadRooms(deptId, targetId) {
             const select = document.getElementById(targetId);
@@ -511,6 +568,167 @@
                 console.error('加载诊室失败:', error);
                 select.innerHTML = '<option value="">加载失败</option>';
             }
+        }
+        
+        // 搜索患者
+        async function searchPatients() {
+            const keyword = document.getElementById('patientSearchKeyword').value.trim();
+            
+            if (!keyword) {
+                showMessage('patientsMessage', '请输入搜索关键词', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/receptionist/patients?keyword=${encodeURIComponent(keyword)}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayPatients(result.data);
+                    if (result.data.length === 0) {
+                        showMessage('patientsMessage', '未找到匹配的患者', 'error');
+                    }
+                } else {
+                    showMessage('patientsMessage', result.message, 'error');
+                }
+            } catch (error) {
+                showMessage('patientsMessage', '查询失败：' + error.message, 'error');
+            }
+        }
+        
+        // 加载全部患者
+        async function loadAllPatients() {
+            try {
+                const response = await fetch('/api/receptionist/patients');
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayPatients(result.data);
+                    showMessage('patientsMessage', `共找到 ${result.data.length} 位患者`, 'success');
+                } else {
+                    showMessage('patientsMessage', result.message, 'error');
+                }
+            } catch (error) {
+                showMessage('patientsMessage', '加载失败：' + error.message, 'error');
+            }
+        }
+        
+        // 显示患者列表
+        function displayPatients(patients) {
+            const container = document.getElementById('patientsList');
+            
+            if (patients.length === 0) {
+                container.innerHTML = '<p style="text-align:center;color:#999;padding:40px;">暂无患者信息</p>';
+                return;
+            }
+            
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>患者ID</th>
+                            <th>姓名</th>
+                            <th>性别</th>
+                            <th>联系电话</th>
+                            <th>身份证号</th>
+                            <th>地址</th>
+                            <th>注册日期</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            patients.forEach(patient => {
+                html += `
+                    <tr>
+                        <td>${patient.patient_id}</td>
+                        <td>${patient.patient_name}</td>
+                        <td>${patient.gender || '-'}</td>
+                        <td>${patient.phone}</td>
+                        <td>${patient.id_card || '-'}</td>
+                        <td>${patient.address || '-'}</td>
+                        <td>${patient.registration_date ? patient.registration_date.substring(0, 10) : '-'}</td>
+                        <td>
+                            <button onclick="viewPatientHistory(${patient.patient_id})" class="btn" style="padding:5px 10px;font-size:12px;">查看就诊记录</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+        
+        // 查看患者就诊记录
+        async function viewPatientHistory(patientId) {
+            try {
+                const response = await fetch(`/api/receptionist/patient/${patientId}/visits`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    showPatientHistoryModal(result.patient, result.visits);
+                } else {
+                    alert('加载失败：' + result.message);
+                }
+            } catch (error) {
+                alert('加载失败：' + error.message);
+            }
+        }
+        
+        // 显示患者历史记录模态框
+        function showPatientHistoryModal(patient, visits) {
+            let html = `
+                <div class="modal" id="historyModal" style="display:block;" onclick="if(event.target === this) this.style.display='none'">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h2>📋 患者就诊记录</h2>
+                            <span class="close-btn" onclick="document.getElementById('historyModal').style.display='none'">&times;</span>
+                        </div>
+                        
+                        <div style="background:#f8f9fa;padding:15px;border-radius:8px;margin-bottom:20px;">
+                            <h3 style="margin-bottom:10px;">患者信息</h3>
+                            <p><strong>姓名：</strong>${patient.patient_name}</p>
+                            <p><strong>性别：</strong>${patient.gender || '-'}</p>
+                            <p><strong>电话：</strong>${patient.phone}</p>
+                            <p><strong>身份证：</strong>${patient.id_card || '-'}</p>
+                            <p><strong>地址：</strong>${patient.address || '-'}</p>
+                        </div>
+                        
+                        <h3 style="margin-bottom:15px;">就诊记录（共${visits.length}次）</h3>
+            `;
+            
+            if (visits.length === 0) {
+                html += '<p style="text-align:center;color:#999;padding:20px;">暂无就诊记录</p>';
+            } else {
+                html += '<table><thead><tr><th>就诊日期</th><th>科室</th><th>医生</th><th>诊室</th><th>状态</th></tr></thead><tbody>';
+                visits.forEach(visit => {
+                    html += `
+                        <tr>
+                            <td>${visit.visit_date} ${visit.visit_time}</td>
+                            <td>${visit.dept_name || '-'}</td>
+                            <td>${visit.doctor_name || '-'}</td>
+                            <td>${visit.room_name || '-'}</td>
+                            <td><span class="status">${visit.status}</span></td>
+                        </tr>
+                    `;
+                });
+                html += '</tbody></table>';
+            }
+            
+            html += `
+                        <div style="text-align:center;margin-top:20px;">
+                            <button onclick="document.getElementById('historyModal').style.display='none'" class="btn">关闭</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // 移除旧的模态框
+            const oldModal = document.getElementById('historyModal');
+            if (oldModal) oldModal.remove();
+            
+            document.body.insertAdjacentHTML('beforeend', html);
         }
         
         // 患者登记

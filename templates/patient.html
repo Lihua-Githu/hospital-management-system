@@ -230,8 +230,15 @@
                 
                 <div class="form-group">
                     <label for="department">就诊科室 *</label>
-                    <select id="department" name="dept_id" required>
+                    <select id="department" name="dept_id" required onchange="loadDoctorsByDept(this.value)">
                         <option value="">请选择科室</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="doctor">预约医生</label>
+                    <select id="doctor" name="doctor_id">
+                        <option value="">请先选择科室</option>
                     </select>
                 </div>
                 
@@ -303,6 +310,37 @@
                 }
             } catch (error) {
                 console.error('加载科室失败:', error);
+            }
+        }
+        
+        // 根据科室加载医生列表
+        async function loadDoctorsByDept(deptId) {
+            const doctorSelect = document.getElementById('doctor');
+            doctorSelect.innerHTML = '<option value="">加载中...</option>';
+            
+            if (!deptId) {
+                doctorSelect.innerHTML = '<option value="">请先选择科室</option>';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/doctors?dept_id=${deptId}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    doctorSelect.innerHTML = '<option value="">不指定医生</option>';
+                    result.data.forEach(doctor => {
+                        const option = document.createElement('option');
+                        option.value = doctor.emp_id;
+                        option.textContent = `${doctor.emp_name} (${doctor.title || '医生'})`;
+                        doctorSelect.appendChild(option);
+                    });
+                } else {
+                    doctorSelect.innerHTML = '<option value="">加载失败</option>';
+                }
+            } catch (error) {
+                console.error('加载医生失败:', error);
+                doctorSelect.innerHTML = '<option value="">加载失败</option>';
             }
         }
         

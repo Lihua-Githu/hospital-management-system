@@ -98,6 +98,40 @@ def get_departments():
     except Exception as e:
         return jsonify({'success': False, 'message': f'查询失败：{str(e)}'})
 
+@app.route('/api/doctors', methods=['GET'])
+def get_doctors_by_dept():
+    """获取医生列表（可按科室筛选）"""
+    try:
+        dept_id = request.args.get('dept_id')
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        if dept_id:
+            cursor.execute("""
+                SELECT emp_id, emp_name, title, dept_id
+                FROM employee
+                WHERE dept_id = ? AND emp_type = '医生'
+                ORDER BY emp_name
+            """, (dept_id,))
+        else:
+            cursor.execute("""
+                SELECT emp_id, emp_name, title, dept_id
+                FROM employee
+                WHERE emp_type = '医生'
+                ORDER BY dept_id, emp_name
+            """)
+        
+        doctors = [dict(row) for row in cursor.fetchall()]
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify({'success': True, 'data': doctors})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'查询失败：{str(e)}'})
+
 # ==================== 患者功能 ====================
 
 @app.route('/api/patient/appointment', methods=['POST'])
@@ -109,12 +143,13 @@ def create_appointment():
         cursor = conn.cursor()
         
         cursor.execute("""
-            INSERT INTO appointment (patient_name, phone, dept_id, appt_date, appt_time, status)
-            VALUES (?, ?, ?, ?, ?, '待到院')
+            INSERT INTO appointment (patient_name, phone, dept_id, doctor_id, appt_date, appt_time, status)
+            VALUES (?, ?, ?, ?, ?, ?, '待到院')
         """, (
             data['patient_name'],
             data['phone'],
             data['dept_id'],
+            data.get('doctor_id'),
             data['appt_date'],
             data['appt_time']
         ))
@@ -189,9 +224,9 @@ def register_visit():
         
         # 创建就诊记录
         cursor.execute("""
-            INSERT INTO visit (patient_id, dept_id, room_id, visit_date, visit_time, status)
-            VALUES (?, ?, ?, date('now'), time('now'), '等待就诊')
-        """, (patient_id, data['dept_id'], data['room_id']))
+            INSERT INTO visit (patient_id, dept_id, doctor_id, room_id, visit_date, visit_time, status)
+            VALUES (?, ?, ?, ?, date('now'), time('now'), '等待就诊')
+        """, (patient_id, data['dept_id'], data.get('doctor_id'), data['room_id']))
         
         visit_id = cursor.lastrowid
         
@@ -213,6 +248,91 @@ def register_visit():
         
     except Exception as e:
         return jsonify({'success': False, 'message': f'登记失败：{str(e)}'})
+
+@app.route('/api/receptionist/patients', methods=['GET'])
+def get_patients():
+    """查询患者信息"""
+    try:
+        keyword = request.args.get('keyword', '').strip()
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        if keyword:
+            # 按关键词搜索
+            cursor.execute("""
+                SELECT patient_id, patient_name, gender, phone, id_card, address, registration_date
+                FROM patient
+                WHERE patient_name LIKE ? OR phone LIKE ? OR id_card LIKE ?
+                ORDER BY registration_date DESC
+                LIMIT 50
+            """, (f'%{keyword}%', f'%{keyword}%', f'%{keyword}%'))
+        else:
+            # 获取全部患者（最近50个）
+            cursor.execute("""
+                SELECT patient_id, patient_name, gender, phone, id_card, address, registration_date
+                FROM patient
+                ORDER BY registration_date DESC
+                LIMIT 50
+            """)
+        
+        patients = [dict(row) for row in cursor.fetchall()]
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify({'success': True, 'data': patients})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'查询失败：{str(e)}'})
+
+@app.route('/api/receptionist/patient/<int:patient_id>/visits', methods=['GET'])
+def get_patient_visits(patient_id):
+    """获取患者就诊记录"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # 获取患者信息
+        cursor.execute("""
+            SELECT patient_id, patient_name, gender, phone, id_card, address
+            FROM patient
+            WHERE patient_id = ?
+        """, (patient_id,))
+        
+        patient = cursor.fetchone()
+        if not patient:
+            return jsonify({'success': False, 'message': '患者不存在'})
+        
+        patient = dict(patient)
+        
+        # 获取就诊记录
+        cursor.execute("""
+            SELECT v.visit_id, v.visit_date, v.visit_time, v.status,
+                   d.dept_name,
+                   e.emp_name as doctor_name,
+                   c.room_name
+            FROM visit v
+            LEFT JOIN department d ON v.dept_id = d.dept_id
+            LEFT JOIN employee e ON v.doctor_id = e.emp_id
+            LEFT JOIN clinic_room c ON v.room_id = c.room_id
+            WHERE v.patient_id = ?
+            ORDER BY v.visit_date DESC, v.visit_time DESC
+        """, (patient_id,))
+        
+        visits = [dict(row) for row in cursor.fetchall()]
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'patient': patient,
+            'visits': visits
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'查询失败：{str(e)}'})
 
 @app.route('/api/receptionist/visits', methods=['GET'])
 def get_visits():

@@ -1,29 +1,24 @@
 # -*- coding: utf-8 -*-
 """
-社区医院门诊管理系统 - 主程序
+社区医院门诊管理系统 - 主程序 (SQLite版本)
 """
 
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for
-import pymysql
-from datetime import datetime, date, timedelta
+from flask import Flask, render_template, request, jsonify, session
+import sqlite3
+from datetime import datetime, date
 from functools import wraps
-import json
 
 app = Flask(__name__)
 app.secret_key = 'hospital_management_secret_key_2026'
 
-# 数据库配置
-DB_CONFIG = {
-    'host': 'localhost',
-    'user': 'root',  # 修改为你的MySQL用户名
-    'password': '',  # 修改为你的MySQL密码
-    'database': 'hospital_management',
-    'charset': 'utf8mb4'
-}
+# SQLite数据库文件路径
+DB_FILE = 'hospital.db'
 
 def get_db_connection():
     """获取数据库连接"""
-    return pymysql.connect(**DB_CONFIG)
+    conn = sqlite3.connect(DB_FILE)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 def login_required(role=None):
     """登录验证装饰器"""
@@ -45,10 +40,28 @@ def index():
     """首页"""
     return render_template('index.html')
 
-@app.route('/login')
-def login_page():
-    """登录页面"""
-    return render_template('login.html')
+@app.route('/help')
+def firewall_guide():
+    """防火墙配置指南"""
+    return render_template('firewall_guide.html')
+
+@app.route('/network-test')
+def network_test():
+    """网络测试页面"""
+    return render_template('network_test.html')
+
+@app.route('/api/get_client_ip')
+def get_client_ip():
+    """获取客户端IP"""
+    try:
+        # 尝试获取真实IP（考虑代理）
+        if request.environ.get('HTTP_X_FORWARDED_FOR'):
+            ip = request.environ['HTTP_X_FORWARDED_FOR']
+        else:
+            ip = request.environ.get('REMOTE_ADDR', 'Unknown')
+        return jsonify({'success': True, 'ip': ip})
+    except:
+        return jsonify({'success': False, 'ip': 'Unknown'})
 
 @app.route('/patient')
 def patient_page():
@@ -67,51 +80,23 @@ def admin_page():
 
 # ==================== API接口 ====================
 
-@app.route('/api/login', methods=['POST'])
-def api_login():
-    """用户登录"""
+@app.route('/api/departments', methods=['GET'])
+def get_departments():
+    """获取科室列表"""
     try:
-        data = request.get_json()
-        username = data.get('username')
-        password = data.get('password')
-        
         conn = get_db_connection()
-        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        cursor = conn.cursor()
         
-        # 查询用户
-        cursor.execute("""
-            SELECT user_id, username, user_role, emp_id, patient_id 
-            FROM system_user 
-            WHERE username = %s AND password = %s AND status = '启用'
-        """, (username, password))
+        cursor.execute("SELECT dept_id, dept_name, description FROM department")
+        departments = [dict(row) for row in cursor.fetchall()]
         
-        user = cursor.fetchone()
         cursor.close()
         conn.close()
         
-        if user:
-            session['user_id'] = user['user_id']
-            session['username'] = user['username']
-            session['user_role'] = user['user_role']
-            session['emp_id'] = user['emp_id']
-            session['patient_id'] = user['patient_id']
-            
-            return jsonify({
-                'success': True,
-                'message': '登录成功',
-                'role': user['user_role']
-            })
-        else:
-            return jsonify({'success': False, 'message': '用户名或密码错误'})
-            
+        return jsonify({'success': True, 'data': departments})
+        
     except Exception as e:
-        return jsonify({'success': False, 'message': f'登录失败：{str(e)}'})
-
-@app.route('/api/logout', methods=['POST'])
-def api_logout():
-    """用户登出"""
-    session.clear()
-    return jsonify({'success': True, 'message': '已退出登录'})
+        return jsonify({'success': False, 'message': f'查询失败：{str(e)}'})
 
 # ==================== 患者功能 ====================
 
@@ -123,10 +108,9 @@ def create_appointment():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # 插入预约信息
         cursor.execute("""
             INSERT INTO appointment (patient_name, phone, dept_id, appt_date, appt_time, status)
-            VALUES (%s, %s, %s, %s, %s, '待到院')
+            VALUES (?, ?, ?, ?, ?, '待到院')
         """, (
             data['patient_name'],
             data['phone'],
@@ -157,50 +141,23 @@ def get_appointments():
         phone = request.args.get('phone')
         
         conn = get_db_connection()
-        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        cursor = conn.cursor()
         
         cursor.execute("""
             SELECT a.appt_id, a.patient_name, a.phone, d.dept_name,
                    a.appt_date, a.appt_time, a.status, a.created_at
             FROM appointment a
             JOIN department d ON a.dept_id = d.dept_id
-            WHERE a.phone = %s
+            WHERE a.phone = ?
             ORDER BY a.appt_date DESC, a.appt_time DESC
         """, (phone,))
         
-        appointments = cursor.fetchall()
-        
-        # 转换日期时间格式
-        for appt in appointments:
-            if appt['appt_date']:
-                appt['appt_date'] = appt['appt_date'].strftime('%Y-%m-%d')
-            if appt['appt_time']:
-                appt['appt_time'] = str(appt['appt_time'])
-            if appt['created_at']:
-                appt['created_at'] = appt['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+        appointments = [dict(row) for row in cursor.fetchall()]
         
         cursor.close()
         conn.close()
         
         return jsonify({'success': True, 'data': appointments})
-        
-    except Exception as e:
-        return jsonify({'success': False, 'message': f'查询失败：{str(e)}'})
-
-@app.route('/api/departments', methods=['GET'])
-def get_departments():
-    """获取科室列表"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor(pymysql.cursors.DictCursor)
-        
-        cursor.execute("SELECT dept_id, dept_name, description FROM department")
-        departments = cursor.fetchall()
-        
-        cursor.close()
-        conn.close()
-        
-        return jsonify({'success': True, 'data': departments})
         
     except Exception as e:
         return jsonify({'success': False, 'message': f'查询失败：{str(e)}'})
@@ -213,26 +170,27 @@ def register_visit():
     try:
         data = request.get_json()
         conn = get_db_connection()
-        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        cursor = conn.cursor()
         
-        # 检查患者是否存在，不存在则创建
-        cursor.execute("SELECT patient_id FROM patient WHERE phone = %s", (data['phone'],))
+        # 检查患者是否存在
+        cursor.execute("SELECT patient_id FROM patient WHERE phone = ?", (data['phone'],))
         patient = cursor.fetchone()
         
-        if not patient:
+        if patient:
+            patient = dict(patient)
+            patient_id = patient['patient_id']
+        else:
             # 创建新患者
             cursor.execute("""
                 INSERT INTO patient (patient_name, gender, id_card, phone)
-                VALUES (%s, %s, %s, %s)
+                VALUES (?, ?, ?, ?)
             """, (data['patient_name'], data.get('gender'), data.get('id_card'), data['phone']))
             patient_id = cursor.lastrowid
-        else:
-            patient_id = patient['patient_id']
         
         # 创建就诊记录
         cursor.execute("""
             INSERT INTO visit (patient_id, dept_id, room_id, visit_date, visit_time, status)
-            VALUES (%s, %s, %s, CURDATE(), CURTIME(), '等待就诊')
+            VALUES (?, ?, ?, date('now'), time('now'), '等待就诊')
         """, (patient_id, data['dept_id'], data['room_id']))
         
         visit_id = cursor.lastrowid
@@ -240,7 +198,7 @@ def register_visit():
         # 如果是预约患者，更新预约状态
         if data.get('appt_id'):
             cursor.execute("""
-                UPDATE appointment SET status = '已到院' WHERE appt_id = %s
+                UPDATE appointment SET status = '已到院' WHERE appt_id = ?
             """, (data['appt_id'],))
         
         conn.commit()
@@ -264,7 +222,7 @@ def get_visits():
         date_filter = request.args.get('date', date.today().strftime('%Y-%m-%d'))
         
         conn = get_db_connection()
-        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        cursor = conn.cursor()
         
         query = """
             SELECT v.visit_id, p.patient_name, d.dept_name, 
@@ -275,28 +233,57 @@ def get_visits():
             JOIN department d ON v.dept_id = d.dept_id
             JOIN clinic_room cr ON v.room_id = cr.room_id
             LEFT JOIN employee e ON v.doctor_id = e.emp_id
-            WHERE v.visit_date = %s
+            WHERE v.visit_date = ?
         """
         params = [date_filter]
         
         if status:
-            query += " AND v.status = %s"
+            query += " AND v.status = ?"
             params.append(status)
         
         query += " ORDER BY v.visit_time DESC"
         
         cursor.execute(query, params)
-        visits = cursor.fetchall()
-        
-        # 格式化时间
-        for visit in visits:
-            if visit['visit_time']:
-                visit['visit_time'] = str(visit['visit_time'])
+        visits = [dict(row) for row in cursor.fetchall()]
         
         cursor.close()
         conn.close()
         
         return jsonify({'success': True, 'data': visits})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'查询失败：{str(e)}'})
+
+@app.route('/api/receptionist/visit_info', methods=['GET'])
+def get_visit_info():
+    """获取就诊信息用于结算"""
+    try:
+        visit_id = request.args.get('visit_id')
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT v.visit_id, v.patient_id, p.patient_name, p.phone,
+                   d.dept_name, cr.room_name, v.visit_date, v.visit_time
+            FROM visit v
+            JOIN patient p ON v.patient_id = p.patient_id
+            JOIN department d ON v.dept_id = d.dept_id
+            JOIN clinic_room cr ON v.room_id = cr.room_id
+            WHERE v.visit_id = ?
+        """, (visit_id,))
+        
+        visit = cursor.fetchone()
+        if visit:
+            visit = dict(visit)
+        
+        cursor.close()
+        conn.close()
+        
+        if visit:
+            return jsonify({'success': True, 'data': visit})
+        else:
+            return jsonify({'success': False, 'message': '未找到就诊记录'})
         
     except Exception as e:
         return jsonify({'success': False, 'message': f'查询失败：{str(e)}'})
@@ -317,7 +304,7 @@ def create_billing():
         cursor.execute("""
             INSERT INTO billing (visit_id, patient_id, total_fee, insurance_fee, 
                                 self_fee, payment_method, payment_status, payment_time, operator_id)
-            VALUES (%s, %s, %s, %s, %s, %s, '已支付', NOW(), %s)
+            VALUES (?, ?, ?, ?, ?, ?, '已支付', datetime('now'), ?)
         """, (
             data['visit_id'],
             data['patient_id'],
@@ -330,7 +317,7 @@ def create_billing():
         
         # 更新就诊状态为已离院
         cursor.execute("""
-            UPDATE visit SET status = '已离院' WHERE visit_id = %s
+            UPDATE visit SET status = '已离院' WHERE visit_id = ?
         """, (data['visit_id'],))
         
         conn.commit()
@@ -355,18 +342,18 @@ def get_rooms():
         dept_id = request.args.get('dept_id')
         
         conn = get_db_connection()
-        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        cursor = conn.cursor()
         
         if dept_id:
             cursor.execute("""
                 SELECT room_id, room_name, status 
                 FROM clinic_room 
-                WHERE dept_id = %s AND status = '开放'
+                WHERE dept_id = ? AND status = '开放'
             """, (dept_id,))
         else:
             cursor.execute("SELECT room_id, room_name, status FROM clinic_room WHERE status = '开放'")
         
-        rooms = cursor.fetchall()
+        rooms = [dict(row) for row in cursor.fetchall()]
         
         cursor.close()
         conn.close()
@@ -378,6 +365,61 @@ def get_rooms():
 
 # ==================== 管理员功能 ====================
 
+@app.route('/api/admin/dashboard', methods=['GET'])
+def get_dashboard():
+    """获取仪表板数据"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # 今日就诊人次
+        cursor.execute("""
+            SELECT COUNT(*) as count FROM visit 
+            WHERE visit_date = date('now')
+        """)
+        today_visits = cursor.fetchone()
+        today_visits = dict(today_visits) if today_visits else {'count': 0}
+        
+        # 今日收入
+        cursor.execute("""
+            SELECT COALESCE(SUM(total_fee), 0) as revenue FROM billing 
+            WHERE date(payment_time) = date('now') AND payment_status = '已支付'
+        """)
+        today_revenue = cursor.fetchone()
+        today_revenue = dict(today_revenue) if today_revenue else {'revenue': 0}
+        
+        # 待就诊患者数
+        cursor.execute("""
+            SELECT COUNT(*) as count FROM visit 
+            WHERE visit_date = date('now') AND status = '等待就诊'
+        """)
+        waiting_patients = cursor.fetchone()
+        waiting_patients = dict(waiting_patients) if waiting_patients else {'count': 0}
+        
+        # 在职医生数
+        cursor.execute("""
+            SELECT COUNT(*) as count FROM employee 
+            WHERE emp_type = '医生' AND work_status = '在职'
+        """)
+        active_doctors = cursor.fetchone()
+        active_doctors = dict(active_doctors) if active_doctors else {'count': 0}
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'today_visits': today_visits['count'],
+                'today_revenue': float(today_revenue['revenue']),
+                'waiting_patients': waiting_patients['count'],
+                'active_doctors': active_doctors['count']
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'查询失败：{str(e)}'})
+
 @app.route('/api/admin/statistics', methods=['GET'])
 def get_statistics():
     """获取统计数据"""
@@ -387,19 +429,19 @@ def get_statistics():
         end_date = request.args.get('end_date', date.today().strftime('%Y-%m-%d'))
         
         conn = get_db_connection()
-        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        cursor = conn.cursor()
         
         if stat_type == 'daily':
             # 按日期统计
             cursor.execute("""
-                SELECT DATE(b.payment_time) as stat_date,
+                SELECT date(b.payment_time) as stat_date,
                        COUNT(DISTINCT v.visit_id) as visit_count,
                        SUM(b.total_fee) as total_revenue
                 FROM billing b
                 JOIN visit v ON b.visit_id = v.visit_id
                 WHERE b.payment_status = '已支付'
-                  AND DATE(b.payment_time) BETWEEN %s AND %s
-                GROUP BY DATE(b.payment_time)
+                  AND date(b.payment_time) BETWEEN ? AND ?
+                GROUP BY date(b.payment_time)
                 ORDER BY stat_date
             """, (start_date, end_date))
             
@@ -413,7 +455,7 @@ def get_statistics():
                 JOIN visit v ON b.visit_id = v.visit_id
                 JOIN department d ON v.dept_id = d.dept_id
                 WHERE b.payment_status = '已支付'
-                  AND DATE(b.payment_time) BETWEEN %s AND %s
+                  AND date(b.payment_time) BETWEEN ? AND ?
                 GROUP BY d.dept_id, d.dept_name
                 ORDER BY total_revenue DESC
             """, (start_date, end_date))
@@ -430,18 +472,18 @@ def get_statistics():
                 JOIN employee e ON v.doctor_id = e.emp_id
                 JOIN department d ON v.dept_id = d.dept_id
                 WHERE b.payment_status = '已支付'
-                  AND DATE(b.payment_time) BETWEEN %s AND %s
+                  AND date(b.payment_time) BETWEEN ? AND ?
                 GROUP BY e.emp_id, e.emp_name, d.dept_name
                 ORDER BY total_revenue DESC
             """, (start_date, end_date))
+        else:
+            return jsonify({'success': False, 'message': '不支持的统计类型'})
         
-        statistics = cursor.fetchall()
+        statistics = [dict(row) for row in cursor.fetchall()]
         
         # 格式化数据
         for stat in statistics:
-            if 'stat_date' in stat and stat['stat_date']:
-                stat['stat_date'] = stat['stat_date'].strftime('%Y-%m-%d')
-            if 'total_revenue' in stat:
+            if 'total_revenue' in stat and stat['total_revenue']:
                 stat['total_revenue'] = float(stat['total_revenue'])
         
         cursor.close()
@@ -459,7 +501,7 @@ def search_patients():
         keyword = request.args.get('keyword', '')
         
         conn = get_db_connection()
-        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        cursor = conn.cursor()
         
         cursor.execute("""
             SELECT p.patient_id, p.patient_name, p.gender, p.phone, p.id_card,
@@ -467,20 +509,15 @@ def search_patients():
                    MAX(v.visit_date) as last_visit_date
             FROM patient p
             LEFT JOIN visit v ON p.patient_id = v.patient_id
-            WHERE p.patient_name LIKE %s 
-               OR p.phone LIKE %s 
-               OR p.id_card LIKE %s
+            WHERE p.patient_name LIKE ? 
+               OR p.phone LIKE ? 
+               OR p.id_card LIKE ?
             GROUP BY p.patient_id
             ORDER BY last_visit_date DESC
             LIMIT 100
         """, (f'%{keyword}%', f'%{keyword}%', f'%{keyword}%'))
         
-        patients = cursor.fetchall()
-        
-        # 格式化日期
-        for patient in patients:
-            if patient['last_visit_date']:
-                patient['last_visit_date'] = patient['last_visit_date'].strftime('%Y-%m-%d')
+        patients = [dict(row) for row in cursor.fetchall()]
         
         cursor.close()
         conn.close()
@@ -495,7 +532,7 @@ def get_employees():
     """查询员工信息"""
     try:
         conn = get_db_connection()
-        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        cursor = conn.cursor()
         
         cursor.execute("""
             SELECT e.emp_id, e.emp_name, e.emp_type, d.dept_name,
@@ -505,12 +542,37 @@ def get_employees():
             ORDER BY e.emp_id
         """)
         
-        employees = cursor.fetchall()
+        employees = [dict(row) for row in cursor.fetchall()]
         
         cursor.close()
         conn.close()
         
         return jsonify({'success': True, 'data': employees})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'查询失败：{str(e)}'})
+
+@app.route('/api/admin/doctors', methods=['GET'])
+def get_doctors():
+    """获取医生列表"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT e.emp_id, e.emp_name, e.title, d.dept_name
+            FROM employee e
+            LEFT JOIN department d ON e.dept_id = d.dept_id
+            WHERE e.emp_type = '医生' AND e.work_status = '在职'
+            ORDER BY e.emp_id
+        """)
+        
+        doctors = [dict(row) for row in cursor.fetchall()]
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify({'success': True, 'data': doctors})
         
     except Exception as e:
         return jsonify({'success': False, 'message': f'查询失败：{str(e)}'})
@@ -525,7 +587,7 @@ def create_schedule():
         
         cursor.execute("""
             INSERT INTO doctor_schedule (doctor_id, room_id, work_date, start_time, end_time, max_patients)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            VALUES (?, ?, ?, ?, ?, ?)
         """, (
             data['doctor_id'],
             data['room_id'],
@@ -557,7 +619,7 @@ def get_schedules():
         work_date = request.args.get('date', date.today().strftime('%Y-%m-%d'))
         
         conn = get_db_connection()
-        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        cursor = conn.cursor()
         
         cursor.execute("""
             SELECT ds.schedule_id, e.emp_name as doctor_name, e.title,
@@ -567,50 +629,16 @@ def get_schedules():
             JOIN employee e ON ds.doctor_id = e.emp_id
             JOIN clinic_room cr ON ds.room_id = cr.room_id
             JOIN department d ON cr.dept_id = d.dept_id
-            WHERE ds.work_date = %s
+            WHERE ds.work_date = ?
             ORDER BY ds.start_time
         """, (work_date,))
         
-        schedules = cursor.fetchall()
-        
-        # 格式化数据
-        for schedule in schedules:
-            if schedule['work_date']:
-                schedule['work_date'] = schedule['work_date'].strftime('%Y-%m-%d')
-            if schedule['start_time']:
-                schedule['start_time'] = str(schedule['start_time'])
-            if schedule['end_time']:
-                schedule['end_time'] = str(schedule['end_time'])
+        schedules = [dict(row) for row in cursor.fetchall()]
         
         cursor.close()
         conn.close()
         
         return jsonify({'success': True, 'data': schedules})
-        
-    except Exception as e:
-        return jsonify({'success': False, 'message': f'查询失败：{str(e)}'})
-
-@app.route('/api/admin/doctors', methods=['GET'])
-def get_doctors():
-    """获取医生列表"""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor(pymysql.cursors.DictCursor)
-        
-        cursor.execute("""
-            SELECT e.emp_id, e.emp_name, e.title, d.dept_name
-            FROM employee e
-            LEFT JOIN department d ON e.dept_id = d.dept_id
-            WHERE e.emp_type = '医生' AND e.work_status = '在职'
-            ORDER BY e.emp_id
-        """)
-        
-        doctors = cursor.fetchall()
-        
-        cursor.close()
-        conn.close()
-        
-        return jsonify({'success': True, 'data': doctors})
         
     except Exception as e:
         return jsonify({'success': False, 'message': f'查询失败：{str(e)}'})

@@ -248,6 +248,64 @@
             border-radius: 10px;
             margin-top: 20px;
         }
+        
+        .chart-bars {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            height: 250px;
+            margin: 30px 0;
+            border-left: 2px solid #ddd;
+            border-bottom: 2px solid #ddd;
+            padding: 10px;
+            gap: 15px;
+        }
+        
+        .chart-bar {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .bar {
+            width: 100%;
+            background: linear-gradient(180deg, #43e97b 0%, #38f9d7 100%);
+            border-radius: 5px 5px 0 0;
+            transition: all 0.3s;
+            position: relative;
+            min-height: 20px;
+            box-shadow: 0 2px 5px rgba(67, 233, 123, 0.3);
+        }
+        
+        .bar:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(67, 233, 123, 0.5);
+        }
+        
+        .bar-value {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+        
+        .bar-label {
+            font-size: 13px;
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .chart-loading {
+            text-align: center;
+            padding: 60px;
+            color: #999;
+        }
     </style>
 </head>
 <body>
@@ -295,7 +353,7 @@
             
             <div class="chart-container">
                 <h3>本周就诊趋势</h3>
-                <p style="color:#666;margin-top:10px;">数据图表展示位置（可使用Chart.js等库实现）</p>
+                <div id="weeklyChart" class="chart-loading">正在加载数据...</div>
             </div>
         </div>
         
@@ -442,14 +500,69 @@
         // 加载仪表板数据
         async function loadDashboard() {
             try {
-                // 模拟数据（实际应调用API）
-                document.getElementById('todayVisits').textContent = '128';
-                document.getElementById('todayRevenue').textContent = '¥ 25,680';
-                document.getElementById('waitingPatients').textContent = '15';
-                document.getElementById('activeDoctors').textContent = '24';
+                const response = await fetch('/api/admin/dashboard');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const data = result.data;
+                    document.getElementById('todayVisits').textContent = data.today_visits || '0';
+                    document.getElementById('todayRevenue').textContent = data.today_revenue ? `¥ ${data.today_revenue.toLocaleString()}` : '¥ 0';
+                    document.getElementById('waitingPatients').textContent = data.waiting_patients || '0';
+                    document.getElementById('activeDoctors').textContent = data.active_doctors || '0';
+                } else {
+                    console.error('加载数据失败:', result.message);
+                }
             } catch (error) {
                 console.error('加载数据失败:', error);
             }
+            
+            // 加载本周趋势图表
+            loadWeeklyChart();
+        }
+        
+        // 加载本周就诊趋势图表
+        async function loadWeeklyChart() {
+            try {
+                const endDate = new Date().toISOString().split('T')[0];
+                const startDate = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                
+                const response = await fetch(`/api/admin/statistics?type=daily&start_date=${startDate}&end_date=${endDate}`);
+                const result = await response.json();
+                
+                if (result.success && result.data.length > 0) {
+                    renderChart(result.data);
+                } else {
+                    document.getElementById('weeklyChart').innerHTML = '<p style="text-align:center;color:#999;padding:40px;">暂无数据</p>';
+                }
+            } catch (error) {
+                console.error('加载图表失败:', error);
+                document.getElementById('weeklyChart').innerHTML = '<p style="text-align:center;color:#f56c6c;padding:40px;">加载失败</p>';
+            }
+        }
+        
+        // 渲染图表
+        function renderChart(data) {
+            const maxValue = Math.max(...data.map(d => d.visit_count));
+            const chartHTML = `
+                <div class="chart-bars">
+                    ${data.map(item => {
+                        const height = maxValue > 0 ? (item.visit_count / maxValue * 100) : 0;
+                        const date = new Date(item.date);
+                        const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+                        const label = `${date.getMonth() + 1}/${date.getDate()} ${weekdays[date.getDay()]}`;
+                        
+                        return `
+                            <div class="chart-bar">
+                                <div class="bar" style="height: ${height}%">
+                                    <span class="bar-value">${item.visit_count}人次</span>
+                                </div>
+                                <div class="bar-label">${label}</div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+            document.getElementById('weeklyChart').innerHTML = chartHTML;
         }
         
         // 加载统计数据

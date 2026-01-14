@@ -547,7 +547,7 @@
                 <div class="chart-bars">
                     ${data.map(item => {
                         const height = maxValue > 0 ? (item.visit_count / maxValue * 100) : 0;
-                        const date = new Date(item.date);
+                        const date = new Date(item.stat_date);
                         const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
                         const label = `${date.getMonth() + 1}/${date.getDate()} ${weekdays[date.getDay()]}`;
                         

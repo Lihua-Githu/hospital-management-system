@@ -261,18 +261,18 @@ def get_patients():
         if keyword:
             # 按关键词搜索
             cursor.execute("""
-                SELECT patient_id, patient_name, gender, phone, id_card, address, registration_date
+                SELECT patient_id, patient_name, gender, phone, id_card, address, created_at as registration_date
                 FROM patient
                 WHERE patient_name LIKE ? OR phone LIKE ? OR id_card LIKE ?
-                ORDER BY registration_date DESC
+                ORDER BY created_at DESC
                 LIMIT 50
             """, (f'%{keyword}%', f'%{keyword}%', f'%{keyword}%'))
         else:
             # 获取全部患者（最近50个）
             cursor.execute("""
-                SELECT patient_id, patient_name, gender, phone, id_card, address, registration_date
+                SELECT patient_id, patient_name, gender, phone, id_card, address, created_at as registration_date
                 FROM patient
-                ORDER BY registration_date DESC
+                ORDER BY created_at DESC
                 LIMIT 50
             """)
         
@@ -311,7 +311,8 @@ def get_patient_visits(patient_id):
             SELECT v.visit_id, v.visit_date, v.visit_time, v.status,
                    d.dept_name,
                    e.emp_name as doctor_name,
-                   c.room_name
+                   c.room_name,
+                   v.diagnosis
             FROM visit v
             LEFT JOIN department d ON v.dept_id = d.dept_id
             LEFT JOIN employee e ON v.doctor_id = e.emp_id

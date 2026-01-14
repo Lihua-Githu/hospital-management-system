@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>前台系统 - 社区医院门诊管理系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: #f5f7fa;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            font-size: 1.8em;
+        }
+        
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid white;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .back-btn:hover {
+            background: white;
+            color: #00f2fe;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .tab {
+            padding: 15px 30px;
+            background: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .tab.active {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 4px 10px rgba(0, 242, 254, 0.3);
+        }
+        
+        .tab-content {
+            display: none;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: bold;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #00f2fe;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            margin-right: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 242, 254, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+        }
+        
+        .btn-success {
+            background: #28a745;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        th {
+            background: #f8f9fa;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .status-badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .status-waiting { background: #fff3cd; color: #856404; }
+        .status-inprogress { background: #d1ecf1; color: #0c5460; }
+        .status-completed { background: #d4edda; color: #155724; }
+        .status-left { background: #d6d8db; color: #383d41; }
+        
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s;
+        }
+        
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            animation: slideDown 0.3s;
+        }
+        
+        @keyframes slideDown {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .close-btn {
+            font-size: 28px;
+            font-weight: bold;
+            color: #aaa;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+        
+        .close-btn:hover {
+            color: #000;
+        }
+        
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .search-box input {
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1>👩‍💼 前台管理系统</h1>
+            <a href="/" class="back-btn">← 返回首页</a>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('register')">📝 患者登记</button>
+            <button class="tab" onclick="switchTab('visits')">📋 就诊管理</button>
+            <button class="tab" onclick="switchTab('billing')">💰 费用结算</button>
+            <button class="tab" onclick="switchTab('appointments')">📅 预约管理</button>
+        </div>
+        
+        <!-- 患者登记 -->
+        <div id="register" class="tab-content active">
+            <h2 style="margin-bottom: 20px;">📝 患者到院登记</h2>
+            <div id="registerMessage" class="message"></div>
+            
+            <form id="registerForm" onsubmit="registerVisit(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="regName">患者姓名 *</label>
+                        <input type="text" id="regName" name="patient_name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="regPhone">联系电话 *</label>
+                        <input type="tel" id="regPhone" name="phone" pattern="1[3-9]\d{9}" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="regGender">性别</label>
+                        <select id="regGender" name="gender">
+                            <option value="">请选择</option>
+                            <option value="男">男</option>
+                            <option value="女">女</option>
+                            <option value="其他">其他</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="regIdCard">身份证号</label>
+                        <input type="text" id="regIdCard" name="id_card" pattern="\d{17}[\dXx]">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="regDept">就诊科室 *</label>
+                        <select id="regDept" name="dept_id" required onchange="loadRooms(this.value, 'regRoom')">
+                            <option value="">请选择科室</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="regRoom">诊室 *</label>
+                        <select id="regRoom" name="room_id" required>
+                            <option value="">请先选择科室</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="regApptId">预约编号（如果是预约患者）</label>
+                    <input type="number" id="regApptId" name="appt_id" placeholder="输入预约编号可自动验证预约信息">
+                </div>
+                
+                <button type="submit" class="btn">登记就诊</button>
+                <button type="reset" class="btn btn-secondary">重置表单</button>
+            </form>
+        </div>
+        
+        <!-- 就诊管理 -->
+        <div id="visits" class="tab-content">
+            <h2 style="margin-bottom: 20px;">📋 就诊信息管理</h2>
+            <div id="visitsMessage" class="message"></div>
+            
+            <div class="search-box">
+                <input type="date" id="visitDate" value="">
+                <select id="visitStatus">
+                    <option value="">全部状态</option>
+                    <option value="等待就诊">等待就诊</option>
+                    <option value="就诊中">就诊中</option>
+                    <option value="已完成">已完成</option>
+                    <option value="已离院">已离院</option>
+                </select>
+                <button onclick="loadVisits()" class="btn">查询</button>
+            </div>
+            
+            <div id="visitsList"></div>
+        </div>
+        
+        <!-- 费用结算 -->
+        <div id="billing" class="tab-content">
+            <h2 style="margin-bottom: 20px;">💰 费用结算</h2>
+            <div id="billingMessage" class="message"></div>
+            
+            <p style="color: #666; margin-bottom: 20px;">请从就诊管理中选择需要结算的患者，或输入就诊编号：</p>
+            
+            <div class="form-group">
+                <label for="visitId">就诊编号 *</label>
+                <input type="number" id="visitId" placeholder="请输入就诊编号">
+            </div>
+            
+            <button onclick="loadVisitForBilling()" class="btn">加载就诊信息</button>
+            
+            <div id="billingForm" style="display:none; margin-top: 30px;">
+                <h3 style="margin-bottom: 20px;">患者信息</h3>
+                <div id="patientInfo" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;"></div>
+                
+                <h3 style="margin-bottom: 20px;">费用信息</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="totalFee">总费用 (元) *</label>
+                        <input type="number" id="totalFee" step="0.01" min="0" required oninput="calculateFee()">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="insuranceFee">医保支付 (元)</label>
+                        <input type="number" id="insuranceFee" step="0.01" min="0" value="0" oninput="calculateFee()">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="selfFee">自费金额 (元)</label>
+                        <input type="number" id="selfFee" step="0.01" readonly>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="paymentMethod">支付方式 *</label>
+                    <select id="paymentMethod" required>
+                        <option value="">请选择支付方式</option>
+                        <option value="现金">现金</option>
+                        <option value="微信">微信</option>
+                        <option value="支付宝">支付宝</option>
+                        <option value="银行卡">银行卡</option>
+                        <option value="医保卡">医保卡</option>
+                    </select>
+                </div>
+                
+                <button onclick="submitBilling()" class="btn btn-success">确认收费</button>
+                <button onclick="cancelBilling()" class="btn btn-secondary">取消</button>
+            </div>
+        </div>
+        
+        <!-- 预约管理 -->
+        <div id="appointments" class="tab-content">
+            <h2 style="margin-bottom: 20px;">📅 预约信息管理</h2>
+            <div id="appointmentsMessage" class="message"></div>
+            
+            <div class="search-box">
+                <input type="date" id="apptDate" value="">
+                <input type="text" id="apptPhone" placeholder="输入手机号查询">
+                <button onclick="loadAppointments()" class="btn">查询</button>
+            </div>
+            
+            <div id="appointmentsList"></div>
+        </div>
+    </div>
+    
+    <script>
+        let currentVisitData = null;
+        
+        // 页面加载
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDepartments();
+            document.getElementById('visitDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('apptDate').value = new Date().toISOString().split('T')[0];
+            loadVisits();
+        });
+        
+        // 切换标签页
+        function switchTab(tabName) {
+            const tabs = document.querySelectorAll('.tab');
+            const contents = document.querySelectorAll('.tab-content');
+            
+            tabs.forEach(tab => tab.classList.remove('active'));
+            contents.forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+            
+            // 加载对应数据
+            if (tabName === 'visits') loadVisits();
+            if (tabName === 'appointments') loadAppointments();
+        }
+        
+        // 加载科室
+        async function loadDepartments() {
+            try {
+                const response = await fetch('/api/departments');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const select = document.getElementById('regDept');
+                    result.data.forEach(dept => {
+                        const option = document.createElement('option');
+                        option.value = dept.dept_id;
+                        option.textContent = dept.dept_name;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('加载科室失败:', error);
+            }
+        }
+        
+        // 加载诊室
+        async function loadRooms(deptId, targetId) {
+            const select = document.getElementById(targetId);
+            select.innerHTML = '<option value="">加载中...</option>';
+            
+            if (!deptId) {
+                select.innerHTML = '<option value="">请先选择科室</option>';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/rooms?dept_id=${deptId}`);
+                const result = await response.json();
+                
+                select.innerHTML = '<option value="">请选择诊室</option>';
+                if (result.success) {
+                    result.data.forEach(room => {
+                        const option = document.createElement('option');
+                        option.value = room.room_id;
+                        option.textContent = room.room_name;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('加载诊室失败:', error);
+                select.innerHTML = '<option value="">加载失败</option>';
+            }
+        }
+        
+        // 患者登记
+        async function registerVisit(event) {
+            event.preventDefault();
+            
+            const formData = new FormData(event.target);
+            const data = Object.fromEntries(formData);
+            
+            try {
+                const response = await fetch('/api/receptionist/register', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                showMessage('registerMessage', result.message, result.success ? 'success' : 'error');
+                
+                if (result.success) {
+                    event.target.reset();
+                    showMessage('registerMessage', `登记成功！就诊编号：${result.visit_id}`, 'success');
+                }
+            } catch (error) {
+                showMessage('registerMessage', '登记失败：' + error.message, 'error');
+            }
+        }
+        
+        // 加载就诊列表
+        async function loadVisits() {
+            const date = document.getElementById('visitDate').value;
+            const status = document.getElementById('visitStatus').value;
+            
+            try {
+                const params = new URLSearchParams({ date, status });
+                const response = await fetch(`/api/receptionist/visits?${params}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayVisits(result.data);
+                } else {
+                    showMessage('visitsMessage', result.message, 'error');
+                }
+            } catch (error) {
+                showMessage('visitsMessage', '加载失败：' + error.message, 'error');
+            }
+        }
+        
+        // 显示就诊列表
+        function displayVisits(visits) {
+            const container = document.getElementById('visitsList');
+            
+            if (visits.length === 0) {
+                container.innerHTML = '<p style="text-align:center;color:#666;margin-top:20px;">暂无就诊记录</p>';
+                return;
+            }
+            
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>就诊编号</th>
+                            <th>患者姓名</th>
+                            <th>科室</th>
+                            <th>诊室</th>
+                            <th>医生</th>
+                            <th>就诊时间</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            visits.forEach(visit => {
+                const statusClass = visit.status === '等待就诊' ? 'status-waiting' :
+                                   visit.status === '就诊中' ? 'status-inprogress' :
+                                   visit.status === '已完成' ? 'status-completed' : 'status-left';
+                
+                html += `
+                    <tr>
+                        <td>${visit.visit_id}</td>
+                        <td>${visit.patient_name}</td>
+                        <td>${visit.dept_name}</td>
+                        <td>${visit.room_name}</td>
+                        <td>${visit.doctor_name || '-'}</td>
+                        <td>${visit.visit_time}</td>
+                        <td><span class="status-badge ${statusClass}">${visit.status}</span></td>
+                        <td>
+                            ${visit.status === '已完成' ? 
+                                `<button class="btn" style="padding:5px 15px;font-size:12px" onclick="goToBilling(${visit.visit_id})">去结算</button>` : 
+                                '-'}
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+        
+        // 跳转到结算页面
+        function goToBilling(visitId) {
+            switchTab('billing');
+            document.getElementById('visitId').value = visitId;
+            loadVisitForBilling();
+        }
+        
+        // 加载就诊信息用于结算
+        async function loadVisitForBilling() {
+            const visitId = document.getElementById('visitId').value;
+            
+            if (!visitId) {
+                showMessage('billingMessage', '请输入就诊编号', 'error');
+                return;
+            }
+            
+            // 这里简化处理，实际应该有专门的API
+            showMessage('billingMessage', '功能演示：请输入费用信息', 'success');
+            document.getElementById('billingForm').style.display = 'block';
+            document.getElementById('patientInfo').innerHTML = `
+                <p><strong>就诊编号：</strong>${visitId}</p>
+                <p style="color:#666;margin-top:5px;">请输入费用信息并选择支付方式</p>
+            `;
+        }
+        
+        // 计算费用
+        function calculateFee() {
+            const total = parseFloat(document.getElementById('totalFee').value) || 0;
+            const insurance = parseFloat(document.getElementById('insuranceFee').value) || 0;
+            document.getElementById('selfFee').value = (total - insurance).toFixed(2);
+        }
+        
+        // 提交结算
+        async function submitBilling() {
+            const visitId = document.getElementById('visitId').value;
+            const totalFee = document.getElementById('totalFee').value;
+            const insuranceFee = document.getElementById('insuranceFee').value;
+            const paymentMethod = document.getElementById('paymentMethod').value;
+            
+            if (!totalFee || !paymentMethod) {
+                showMessage('billingMessage', '请填写完整的费用信息', 'error');
+                return;
+            }
+            
+            const data = {
+                visit_id: visitId,
+                patient_id: 1, // 实际应从就诊信息获取
+                total_fee: totalFee,
+                insurance_fee: insuranceFee || 0,
+                payment_method: paymentMethod
+            };
+            
+            try {
+                const response = await fetch('/api/receptionist/billing', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                showMessage('billingMessage', result.message, result.success ? 'success' : 'error');
+                
+                if (result.success) {
+                    cancelBilling();
+                }
+            } catch (error) {
+                showMessage('billingMessage', '结算失败：' + error.message, 'error');
+            }
+        }
+        
+        // 取消结算
+        function cancelBilling() {
+            document.getElementById('billingForm').style.display = 'none';
+            document.getElementById('visitId').value = '';
+            document.getElementById('totalFee').value = '';
+            document.getElementById('insuranceFee').value = '0';
+            document.getElementById('selfFee').value = '';
+            document.getElementById('paymentMethod').value = '';
+        }
+        
+        // 加载预约列表
+        async function loadAppointments() {
+            const date = document.getElementById('apptDate').value;
+            const phone = document.getElementById('apptPhone').value;
+            
+            let url = '/api/patient/appointments?';
+            if (phone) {
+                url += `phone=${phone}`;
+            }
+            
+            try {
+                const response = await fetch(url);
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayAppointments(result.data, date);
+                } else {
+                    showMessage('appointmentsMessage', result.message, 'error');
+                }
+            } catch (error) {
+                showMessage('appointmentsMessage', '加载失败：' + error.message, 'error');
+            }
+        }
+        
+        // 显示预约列表
+        function displayAppointments(appointments, filterDate) {
+            const container = document.getElementById('appointmentsList');
+            
+            // 如果有日期过滤
+            if (filterDate) {
+                appointments = appointments.filter(a => a.appt_date === filterDate);
+            }
+            
+            if (appointments.length === 0) {
+                container.innerHTML = '<p style="text-align:center;color:#666;margin-top:20px;">暂无预约记录</p>';
+                return;
+            }
+            
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>预约编号</th>
+                            <th>患者姓名</th>
+                            <th>电话</th>
+                            <th>科室</th>
+                            <th>预约日期</th>
+                            <th>预约时间</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            appointments.forEach(appt => {
+                const statusClass = appt.status === '待到院' ? 'status-waiting' :
+                                   appt.status === '已到院' ? 'status-completed' : 'status-left';
+                
+                html += `
+                    <tr>
+                        <td>${appt.appt_id}</td>
+                        <td>${appt.patient_name}</td>
+                        <td>${appt.phone}</td>
+                        <td>${appt.dept_name}</td>
+                        <td>${appt.appt_date}</td>
+                        <td>${appt.appt_time}</td>
+                        <td><span class="status-badge ${statusClass}">${appt.status}</span></td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+        
+        // 显示消息
+        function showMessage(elementId, message, type) {
+            const msgElement = document.getElementById(elementId);
+            msgElement.textContent = message;
+            msgElement.className = 'message ' + type;
+            msgElement.style.display = 'block';
+            
+            setTimeout(() => {
+                msgElement.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

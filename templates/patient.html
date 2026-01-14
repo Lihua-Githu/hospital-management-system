@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>患者服务 - 社区医院门诊管理系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: #f5f7fa;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            font-size: 1.8em;
+        }
+        
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid white;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .back-btn:hover {
+            background: white;
+            color: #f5576c;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .tab {
+            padding: 15px 30px;
+            background: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .tab.active {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 4px 10px rgba(245, 87, 108, 0.3);
+        }
+        
+        .tab-content {
+            display: none;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: bold;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #f5576c;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            margin-right: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(245, 87, 108, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        th {
+            background: #f8f9fa;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .status-badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .status-waiting { background: #fff3cd; color: #856404; }
+        .status-arrived { background: #d1ecf1; color: #0c5460; }
+        .status-cancelled { background: #f8d7da; color: #721c24; }
+        
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1>👨‍⚕️ 患者服务系统</h1>
+            <a href="/" class="back-btn">← 返回首页</a>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('appointment')">📅 在线预约</button>
+            <button class="tab" onclick="switchTab('query')">🔍 预约查询</button>
+        </div>
+        
+        <!-- 在线预约 -->
+        <div id="appointment" class="tab-content active">
+            <h2 style="margin-bottom: 20px;">📝 填写预约信息</h2>
+            <div id="apptMessage" class="message"></div>
+            
+            <form id="appointmentForm" onsubmit="submitAppointment(event)">
+                <div class="form-group">
+                    <label for="patientName">患者姓名 *</label>
+                    <input type="text" id="patientName" name="patient_name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone">联系电话 *</label>
+                    <input type="tel" id="phone" name="phone" pattern="1[3-9]\d{9}" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="department">就诊科室 *</label>
+                    <select id="department" name="dept_id" required>
+                        <option value="">请选择科室</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="apptDate">预约日期 *</label>
+                    <input type="date" id="apptDate" name="appt_date" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="apptTime">预计到达时间 *</label>
+                    <input type="time" id="apptTime" name="appt_time" required>
+                </div>
+                
+                <button type="submit" class="btn">提交预约</button>
+                <button type="reset" class="btn btn-secondary">重置表单</button>
+            </form>
+        </div>
+        
+        <!-- 预约查询 -->
+        <div id="query" class="tab-content">
+            <h2 style="margin-bottom: 20px;">🔍 查询我的预约</h2>
+            <div id="queryMessage" class="message"></div>
+            
+            <div class="form-group">
+                <label for="queryPhone">请输入预约时的手机号</label>
+                <input type="tel" id="queryPhone" pattern="1[3-9]\d{9}" placeholder="请输入11位手机号">
+            </div>
+            
+            <button onclick="queryAppointments()" class="btn">查询预约</button>
+            
+            <div id="appointmentList"></div>
+        </div>
+    </div>
+    
+    <script>
+        // 页面加载时获取科室列表
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDepartments();
+            // 设置日期最小值为今天
+            document.getElementById('apptDate').min = new Date().toISOString().split('T')[0];
+        });
+        
+        // 切换标签页
+        function switchTab(tabName) {
+            const tabs = document.querySelectorAll('.tab');
+            const contents = document.querySelectorAll('.tab-content');
+            
+            tabs.forEach(tab => tab.classList.remove('active'));
+            contents.forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+        }
+        
+        // 加载科室列表
+        async function loadDepartments() {
+            try {
+                const response = await fetch('/api/departments');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const select = document.getElementById('department');
+                    result.data.forEach(dept => {
+                        const option = document.createElement('option');
+                        option.value = dept.dept_id;
+                        option.textContent = dept.dept_name;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('加载科室失败:', error);
+            }
+        }
+        
+        // 提交预约
+        async function submitAppointment(event) {
+            event.preventDefault();
+            
+            const formData = new FormData(event.target);
+            const data = Object.fromEntries(formData);
+            
+            try {
+                const response = await fetch('/api/patient/appointment', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                showMessage('apptMessage', result.message, result.success ? 'success' : 'error');
+                
+                if (result.success) {
+                    event.target.reset();
+                    setTimeout(() => {
+                        showMessage('apptMessage', `预约成功！您的预约编号是：${result.appt_id}，请记住此编号。`, 'success');
+                    }, 100);
+                }
+            } catch (error) {
+                showMessage('apptMessage', '提交失败：' + error.message, 'error');
+            }
+        }
+        
+        // 查询预约
+        async function queryAppointments() {
+            const phone = document.getElementById('queryPhone').value;
+            
+            if (!phone || !phone.match(/1[3-9]\d{9}/)) {
+                showMessage('queryMessage', '请输入正确的手机号码', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/patient/appointments?phone=${phone}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayAppointments(result.data);
+                } else {
+                    showMessage('queryMessage', result.message, 'error');
+                }
+            } catch (error) {
+                showMessage('queryMessage', '查询失败：' + error.message, 'error');
+            }
+        }
+        
+        // 显示预约列表
+        function displayAppointments(appointments) {
+            const container = document.getElementById('appointmentList');
+            
+            if (appointments.length === 0) {
+                container.innerHTML = '<p style="text-align:center;color:#666;margin-top:20px;">暂无预约记录</p>';
+                return;
+            }
+            
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>预约编号</th>
+                            <th>患者姓名</th>
+                            <th>就诊科室</th>
+                            <th>预约日期</th>
+                            <th>预计时间</th>
+                            <th>状态</th>
+                            <th>预约时间</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            appointments.forEach(appt => {
+                const statusClass = appt.status === '待到院' ? 'status-waiting' : 
+                                   appt.status === '已到院' ? 'status-arrived' : 'status-cancelled';
+                
+                html += `
+                    <tr>
+                        <td>${appt.appt_id}</td>
+                        <td>${appt.patient_name}</td>
+                        <td>${appt.dept_name}</td>
+                        <td>${appt.appt_date}</td>
+                        <td>${appt.appt_time}</td>
+                        <td><span class="status-badge ${statusClass}">${appt.status}</span></td>
+                        <td>${appt.created_at}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+        
+        // 显示消息
+        function showMessage(elementId, message, type) {
+            const msgElement = document.getElementById(elementId);
+            msgElement.textContent = message;
+            msgElement.className = 'message ' + type;
+            msgElement.style.display = 'block';
+            
+            setTimeout(() => {
+                msgElement.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

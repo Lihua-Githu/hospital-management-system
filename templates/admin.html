@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理后台 - 社区医院门诊管理系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: #f5f7fa;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            font-size: 1.8em;
+        }
+        
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid white;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .back-btn:hover {
+            background: white;
+            color: #38f9d7;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .tab {
+            padding: 15px 30px;
+            background: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .tab.active {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 4px 10px rgba(56, 249, 215, 0.3);
+        }
+        
+        .tab-content {
+            display: none;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .stat-card.green {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+        
+        .stat-card.blue {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .stat-card.orange {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+        
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .stat-label {
+            font-size: 1em;
+            opacity: 0.9;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: bold;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #38f9d7;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+            margin-right: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(56, 249, 215, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        th {
+            background: #f8f9fa;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .search-box input, .search-box select {
+            flex: 1;
+        }
+        
+        .chart-container {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1>👨‍💻 管理后台系统</h1>
+            <a href="/" class="back-btn">← 返回首页</a>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('dashboard')">📊 数据概览</button>
+            <button class="tab" onclick="switchTab('statistics')">📈 收入统计</button>
+            <button class="tab" onclick="switchTab('patients')">👥 患者查询</button>
+            <button class="tab" onclick="switchTab('employees')">👨‍⚕️ 员工管理</button>
+            <button class="tab" onclick="switchTab('schedule')">📅 排班管理</button>
+        </div>
+        
+        <!-- 数据概览 -->
+        <div id="dashboard" class="tab-content active">
+            <h2 style="margin-bottom: 20px;">📊 今日数据概览</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card green">
+                    <div class="stat-label">今日就诊人次</div>
+                    <div class="stat-value" id="todayVisits">-</div>
+                </div>
+                
+                <div class="stat-card blue">
+                    <div class="stat-label">今日收入 (元)</div>
+                    <div class="stat-value" id="todayRevenue">-</div>
+                </div>
+                
+                <div class="stat-card orange">
+                    <div class="stat-label">待就诊患者</div>
+                    <div class="stat-value" id="waitingPatients">-</div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-label">在职医生</div>
+                    <div class="stat-value" id="activeDoctors">-</div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h3>本周就诊趋势</h3>
+                <p style="color:#666;margin-top:10px;">数据图表展示位置（可使用Chart.js等库实现）</p>
+            </div>
+        </div>
+        
+        <!-- 收入统计 -->
+        <div id="statistics" class="tab-content">
+            <h2 style="margin-bottom: 20px;">📈 收入统计分析</h2>
+            <div id="statisticsMessage" class="message"></div>
+            
+            <div class="search-box">
+                <input type="date" id="statStartDate" value="">
+                <input type="date" id="statEndDate" value="">
+                <select id="statType">
+                    <option value="daily">按日期统计</option>
+                    <option value="department">按科室统计</option>
+                    <option value="doctor">按医生统计</option>
+                </select>
+                <button onclick="loadStatistics()" class="btn">查询统计</button>
+            </div>
+            
+            <div id="statisticsResult"></div>
+        </div>
+        
+        <!-- 患者查询 -->
+        <div id="patients" class="tab-content">
+            <h2 style="margin-bottom: 20px;">👥 患者信息查询</h2>
+            <div id="patientsMessage" class="message"></div>
+            
+            <div class="search-box">
+                <input type="text" id="patientKeyword" placeholder="输入姓名、电话或身份证号查询">
+                <button onclick="searchPatients()" class="btn">查询</button>
+            </div>
+            
+            <div id="patientsList"></div>
+        </div>
+        
+        <!-- 员工管理 -->
+        <div id="employees" class="tab-content">
+            <h2 style="margin-bottom: 20px;">👨‍⚕️ 员工信息管理</h2>
+            <div id="employeesMessage" class="message"></div>
+            
+            <button onclick="loadEmployees()" class="btn" style="margin-bottom:20px;">刷新列表</button>
+            
+            <div id="employeesList"></div>
+        </div>
+        
+        <!-- 排班管理 -->
+        <div id="schedule" class="tab-content">
+            <h2 style="margin-bottom: 20px;">📅 医生排班管理</h2>
+            <div id="scheduleMessage" class="message"></div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                <!-- 创建排班 -->
+                <div>
+                    <h3 style="margin-bottom: 20px;">新建排班</h3>
+                    <form id="scheduleForm" onsubmit="createSchedule(event)">
+                        <div class="form-group">
+                            <label for="schedDoctor">医生 *</label>
+                            <select id="schedDoctor" name="doctor_id" required>
+                                <option value="">请选择医生</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="schedRoom">诊室 *</label>
+                            <select id="schedRoom" name="room_id" required>
+                                <option value="">请选择诊室</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="schedDate">排班日期 *</label>
+                            <input type="date" id="schedDate" name="work_date" required>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="schedStart">开始时间 *</label>
+                                <input type="time" id="schedStart" name="start_time" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="schedEnd">结束时间 *</label>
+                                <input type="time" id="schedEnd" name="end_time" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="schedMax">最大接诊人数</label>
+                            <input type="number" id="schedMax" name="max_patients" value="30" min="1">
+                        </div>
+                        
+                        <button type="submit" class="btn">创建排班</button>
+                        <button type="reset" class="btn btn-secondary">重置</button>
+                    </form>
+                </div>
+                
+                <!-- 查看排班 -->
+                <div>
+                    <h3 style="margin-bottom: 20px;">查看排班</h3>
+                    <div class="form-group">
+                        <label for="schedQueryDate">选择日期</label>
+                        <input type="date" id="schedQueryDate" value="">
+                    </div>
+                    <button onclick="loadSchedules()" class="btn">查询排班</button>
+                    
+                    <div id="schedulesList" style="margin-top: 20px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 页面加载
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('statStartDate').value = today;
+            document.getElementById('statEndDate').value = today;
+            document.getElementById('schedDate').min = today;
+            document.getElementById('schedDate').value = today;
+            document.getElementById('schedQueryDate').value = today;
+            
+            loadDashboard();
+            loadDoctors();
+            loadRooms();
+        });
+        
+        // 切换标签页
+        function switchTab(tabName) {
+            const tabs = document.querySelectorAll('.tab');
+            const contents = document.querySelectorAll('.tab-content');
+            
+            tabs.forEach(tab => tab.classList.remove('active'));
+            contents.forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+            
+            // 加载数据
+            if (tabName === 'dashboard') loadDashboard();
+            if (tabName === 'employees') loadEmployees();
+            if (tabName === 'schedule') loadSchedules();
+        }
+        
+        // 加载仪表板数据
+        async function loadDashboard() {
+            try {
+                // 模拟数据（实际应调用API）
+                document.getElementById('todayVisits').textContent = '128';
+                document.getElementById('todayRevenue').textContent = '¥ 25,680';
+                document.getElementById('waitingPatients').textContent = '15';
+                document.getElementById('activeDoctors').textContent = '24';
+            } catch (error) {
+                console.error('加载数据失败:', error);
+            }
+        }
+        
+        // 加载统计数据
+        async function loadStatistics() {
+            const startDate = document.getElementById('statStartDate').value;
+            const endDate = document.getElementById('statEndDate').value;
+            const type = document.getElementById('statType').value;
+            
+            try {
+                const params = new URLSearchParams({ type, start_date: startDate, end_date: endDate });
+                const response = await fetch(`/api/admin/statistics?${params}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayStatistics(result.data, type);
+                } else {
+                    showMessage('statisticsMessage', result.message, 'error');
+                }
+            } catch (error) {
+                showMessage('statisticsMessage', '加载失败：' + error.message, 'error');
+            }
+        }
+        
+        // 显示统计数据
+        function displayStatistics(data, type) {
+            const container = document.getElementById('statisticsResult');
+            
+            if (data.length === 0) {
+                container.innerHTML = '<p style="text-align:center;color:#666;margin-top:20px;">暂无统计数据</p>';
+                return;
+            }
+            
+            let headers = '';
+            if (type === 'daily') {
+                headers = '<th>日期</th><th>就诊人次</th><th>总收入 (元)</th>';
+            } else if (type === 'department') {
+                headers = '<th>科室</th><th>就诊人次</th><th>总收入 (元)</th>';
+            } else if (type === 'doctor') {
+                headers = '<th>医生</th><th>科室</th><th>就诊人次</th><th>总收入 (元)</th>';
+            }
+            
+            let html = `<table><thead><tr>${headers}</tr></thead><tbody>`;
+            
+            data.forEach(item => {
+                html += '<tr>';
+                if (type === 'daily') {
+                    html += `<td>${item.stat_date || '-'}</td>`;
+                } else if (type === 'department') {
+                    html += `<td>${item.dept_name}</td>`;
+                } else if (type === 'doctor') {
+                    html += `<td>${item.emp_name}</td><td>${item.dept_name}</td>`;
+                }
+                html += `
+                    <td>${item.visit_count || 0}</td>
+                    <td>¥ ${(item.total_revenue || 0).toLocaleString('zh-CN', {minimumFractionDigits: 2})}</td>
+                </tr>`;
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+        
+        // 查询患者
+        async function searchPatients() {
+            const keyword = document.getElementById('patientKeyword').value;
+            
+            if (!keyword) {
+                showMessage('patientsMessage', '请输入查询关键词', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/admin/patients?keyword=${keyword}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayPatients(result.data);
+                } else {
+                    showMessage('patientsMessage', result.message, 'error');
+                }
+            } catch (error) {
+                showMessage('patientsMessage', '查询失败：' + error.message, 'error');
+            }
+        }
+        
+        // 显示患者列表
+        function displayPatients(patients) {
+            const container = document.getElementById('patientsList');
+            
+            if (patients.length === 0) {
+                container.innerHTML = '<p style="text-align:center;color:#666;margin-top:20px;">未找到匹配的患者</p>';
+                return;
+            }
+            
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>患者ID</th>
+                            <th>姓名</th>
+                            <th>性别</th>
+                            <th>电话</th>
+                            <th>身份证号</th>
+                            <th>就诊次数</th>
+                            <th>最近就诊</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            patients.forEach(patient => {
+                html += `
+                    <tr>
+                        <td>${patient.patient_id}</td>
+                        <td>${patient.patient_name}</td>
+                        <td>${patient.gender || '-'}</td>
+                        <td>${patient.phone}</td>
+                        <td>${patient.id_card || '-'}</td>
+                        <td>${patient.visit_count || 0}</td>
+                        <td>${patient.last_visit_date || '-'}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+        
+        // 加载员工列表
+        async function loadEmployees() {
+            try {
+                const response = await fetch('/api/admin/employees');
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayEmployees(result.data);
+                } else {
+                    showMessage('employeesMessage', result.message, 'error');
+                }
+            } catch (error) {
+                showMessage('employeesMessage', '加载失败：' + error.message, 'error');
+            }
+        }
+        
+        // 显示员工列表
+        function displayEmployees(employees) {
+            const container = document.getElementById('employeesList');
+            
+            if (employees.length === 0) {
+                container.innerHTML = '<p style="text-align:center;color:#666;margin-top:20px;">暂无员工记录</p>';
+                return;
+            }
+            
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>工号</th>
+                            <th>姓名</th>
+                            <th>类型</th>
+                            <th>科室</th>
+                            <th>职称</th>
+                            <th>电话</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            employees.forEach(emp => {
+                html += `
+                    <tr>
+                        <td>${emp.emp_id}</td>
+                        <td>${emp.emp_name}</td>
+                        <td>${emp.emp_type}</td>
+                        <td>${emp.dept_name || '-'}</td>
+                        <td>${emp.title || '-'}</td>
+                        <td>${emp.phone || '-'}</td>
+                        <td>${emp.work_status}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+        
+        // 加载医生列表
+        async function loadDoctors() {
+            try {
+                const response = await fetch('/api/admin/doctors');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const select = document.getElementById('schedDoctor');
+                    select.innerHTML = '<option value="">请选择医生</option>';
+                    result.data.forEach(doctor => {
+                        const option = document.createElement('option');
+                        option.value = doctor.emp_id;
+                        option.textContent = `${doctor.emp_name} - ${doctor.title} (${doctor.dept_name})`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('加载医生列表失败:', error);
+            }
+        }
+        
+        // 加载诊室列表
+        async function loadRooms() {
+            try {
+                const response = await fetch('/api/rooms');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const select = document.getElementById('schedRoom');
+                    select.innerHTML = '<option value="">请选择诊室</option>';
+                    result.data.forEach(room => {
+                        const option = document.createElement('option');
+                        option.value = room.room_id;
+                        option.textContent = room.room_name;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('加载诊室列表失败:', error);
+            }
+        }
+        
+        // 创建排班
+        async function createSchedule(event) {
+            event.preventDefault();
+            
+            const formData = new FormData(event.target);
+            const data = Object.fromEntries(formData);
+            
+            try {
+                const response = await fetch('/api/admin/schedule', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                showMessage('scheduleMessage', result.message, result.success ? 'success' : 'error');
+                
+                if (result.success) {
+                    event.target.reset();
+                    loadSchedules();
+                }
+            } catch (error) {
+                showMessage('scheduleMessage', '创建失败：' + error.message, 'error');
+            }
+        }
+        
+        // 加载排班列表
+        async function loadSchedules() {
+            const date = document.getElementById('schedQueryDate').value;
+            
+            try {
+                const response = await fetch(`/api/admin/schedules?date=${date}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    displaySchedules(result.data);
+                } else {
+                    showMessage('scheduleMessage', result.message, 'error');
+                }
+            } catch (error) {
+                showMessage('scheduleMessage', '加载失败：' + error.message, 'error');
+            }
+        }
+        
+        // 显示排班列表
+        function displaySchedules(schedules) {
+            const container = document.getElementById('schedulesList');
+            
+            if (schedules.length === 0) {
+                container.innerHTML = '<p style="text-align:center;color:#666;margin-top:20px;">当天无排班</p>';
+                return;
+            }
+            
+            let html = `
+                <table style="font-size: 13px;">
+                    <thead>
+                        <tr>
+                            <th>医生</th>
+                            <th>科室</th>
+                            <th>诊室</th>
+                            <th>时间</th>
+                            <th>人数</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            schedules.forEach(sched => {
+                html += `
+                    <tr>
+                        <td>${sched.doctor_name}<br><small>${sched.title}</small></td>
+                        <td>${sched.dept_name}</td>
+                        <td>${sched.room_name}</td>
+                        <td>${sched.start_time} - ${sched.end_time}</td>
+                        <td>${sched.current_patients || 0}/${sched.max_patients}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+        
+        // 显示消息
+        function showMessage(elementId, message, type) {
+            const msgElement = document.getElementById(elementId);
+            msgElement.textContent = message;
+            msgElement.className = 'message ' + type;
+            msgElement.style.display = 'block';
+            
+            setTimeout(() => {
+                msgElement.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

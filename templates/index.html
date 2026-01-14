@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>社区医院门诊管理系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 60px;
+            max-width: 800px;
+            width: 90%;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 50px;
+            font-size: 1.1em;
+        }
+        
+        .role-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+        
+        .role-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 15px;
+            padding: 40px 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+            text-decoration: none;
+            display: block;
+        }
+        
+        .role-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+        }
+        
+        .role-card.patient {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .role-card.receptionist {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .role-card.admin {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+        
+        .role-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+        
+        .role-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .role-desc {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        
+        .info-section {
+            margin-top: 50px;
+            padding-top: 30px;
+            border-top: 2px solid #eee;
+        }
+        
+        .info-item {
+            display: inline-block;
+            margin: 10px 20px;
+            color: #666;
+        }
+        
+        .info-item strong {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏥 社区医院门诊管理系统</h1>
+        <p class="subtitle">Community Hospital Outpatient Management System</p>
+        
+        <div class="role-buttons">
+            <a href="/patient" class="role-card patient">
+                <div class="role-icon">👨‍⚕️</div>
+                <div class="role-title">患者服务</div>
+                <div class="role-desc">在线预约 · 到院登记 · 就诊查询</div>
+            </a>
+            
+            <a href="/receptionist" class="role-card receptionist">
+                <div class="role-icon">👩‍💼</div>
+                <div class="role-title">前台系统</div>
+                <div class="role-desc">挂号登记 · 费用结算 · 患者管理</div>
+            </a>
+            
+            <a href="/admin" class="role-card admin">
+                <div class="role-icon">👨‍💻</div>
+                <div class="role-title">管理后台</div>
+                <div class="role-desc">排班管理 · 数据统计 · 系统配置</div>
+            </a>
+        </div>
+        
+        <div class="info-section">
+            <div class="info-item">
+                <strong>📞 联系电话：</strong> 400-123-4567
+            </div>
+            <div class="info-item">
+                <strong>🕐 工作时间：</strong> 周一至周日 8:00-17:00
+            </div>
+            <div class="info-item">
+                <strong>📍 医院地址：</strong> 广东省广州市海珠区新港西路135号
+            </div>
+        </div>
+    </div>
+</body>
+</html>
